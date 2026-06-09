@@ -83,6 +83,37 @@ class EmailService {
       `,
     });
   }
+
+
+  async sendInvitationEmail({ to, inviterName, workspaceName, inviteUrl, role }) {
+    return this.sendMail({
+      to,
+      subject: `${inviterName} invited you to join ${workspaceName} on Plana`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #1a1a1a;">You're invited to join ${workspaceName}</h2>
+          <p style="color: #444;">
+            <strong>${inviterName}</strong> has invited you to join
+            <strong>${workspaceName}</strong> as a <strong>${role}</strong>.
+          </p>
+          <a href="${inviteUrl}" style="
+            display: inline-block;
+            background: #4f46e5;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 24px 0;
+          ">Accept Invitation</a>
+          <p style="color: #888; font-size: 13px;">
+            This invitation expires in 7 days.
+            If you did not expect this invitation, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    });
+  }
 }
 
 export const emailService = new EmailService();

@@ -1,4 +1,5 @@
 import mongoose from "mongoose"
+import { WORKSPACE_ROLES } from "../../shared/constants/roles.constants.js";
 
 const workspaceMemberSchema=new mongoose.Schema(
     {
@@ -38,4 +39,4 @@ workspaceMemberSchema.index({ workspaceId: 1, userId: 1 }, { unique: true });
 workspaceMemberSchema.index({ userId: 1 });           // "All workspaces for user" query
 workspaceMemberSchema.index({ workspaceId: 1 }); 
 
-export const WorkSpaceMemberModel=mongoose.model("WorkspaceMember",workspaceMemberSchema)
+export const WorkspaceMemberModel=mongoose.model("WorkspaceMember",workspaceMemberSchema)

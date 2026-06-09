@@ -40,7 +40,7 @@ const workspaceSchema=new mongoose.Schema({
     timestamps:true
 })
 
-workspaceSchema.index({ slug: 1 });         // Unique lookup by slug
+       
 workspaceSchema.index({ owner: 1 });        // "My workspaces" query
 
 

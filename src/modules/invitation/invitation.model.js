@@ -2,7 +2,7 @@
 
 import mongoose from "mongoose";
 import { WORKSPACE_ROLES } from "../../shared/constants/roles.constants.js";
-import { INVITATION_STATUSES } from "../../shared/constants/invitation.constants.js";
+import { INVITATION_STATUSES } from "../../shared/constants/invitation.constant.js";
 
 const invitationSchema = new mongoose.Schema(
   {

@@ -1,22 +1,11 @@
 // src/shared/validators/validate.js
 
-import { AppError } from "../errors/AppError.js";
-import { ErrorCodes } from "../errors/ErrorCodes.js";
+export const validate = (schema, source = "body") => (req, res, next) => {
+  const target = source === "query" ? req.query : req.body;
 
-/**
- * Generic Joi schema validation middleware factory.
- *
- * Usage in any route file:
- *   router.post("/", validate(createWorkspaceSchema), workspaceController.create);
- *
- * Why centralize this?
- * Each module defines its own Joi schemas (domain knowledge lives in the module),
- * but the mechanics of "validate and return a 400 on failure" live here once.
- */
-export const validate = (schema) => (req, res, next) => {
-  const { error, value } = schema.validate(req.body, {
-    abortEarly: false,       // Return ALL validation errors, not just the first
-    stripUnknown: true,      // Remove fields not in the schema (prevents injection of extra fields)
+  const { error, value } = schema.validate(target, {
+    abortEarly: false,
+    stripUnknown: true,
   });
 
   if (error) {
@@ -24,7 +13,8 @@ export const validate = (schema) => (req, res, next) => {
     return next(new AppError(message, 400, ErrorCodes.VALIDATION_ERROR));
   }
 
-  // Replace req.body with the validated + sanitized value
-  req.body = value;
+  if (source === "query") req.query = value;
+  else req.body = value;
+
   next();
 };
