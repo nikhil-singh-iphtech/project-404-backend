@@ -7,7 +7,7 @@ export const createProjectSchema = Joi.object({
   key:         Joi.string().min(2).max(10).alphanum().required(),
   description: Joi.string().max(500).optional().allow("", null),
   emoji:       Joi.string().optional().allow("", null),
-  workspaceId: Joi.string().required(),
+ 
 });
 
 export const updateProjectSchema = Joi.object({

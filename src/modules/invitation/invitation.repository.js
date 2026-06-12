@@ -31,7 +31,7 @@ class InvitationRepository extends BaseRepository{
 
     async createInvitation({workspaceId,email,role,invitedBy}){
         const rawToken=crypto.randomBytes(32).toString("hex");
-        const hashedToken=crypto.createHash("sha266").update(rawToken).digest("hex")
+        const hashedToken=crypto.createHash("sha256").update(rawToken).digest("hex")
 
         await InvitationModel.create({
             workspaceId,

@@ -7,19 +7,27 @@ import { ErrorCodes } from "../errors/ErrorCodes.js";
 import { config } from "../../config/app.config.js";
 import { UserModel } from "../../modules/auth/auth.model.js";
 
-/**
- * Verifies JWT from Authorization header and attaches user to req.user.
- *
- * Why re-fetch the user from DB on every request instead of trusting the JWT?
- *
- * Because JWT payloads are snapshots. If a user is banned, deleted,
- * or has their role changed, a cached JWT will still pass signature
- * verification and grant stale access until it expires.
- *
- * Trade-off: One extra DB query per request.
- * Mitigation: Cache user in Redis for high-traffic APIs (Phase 8).
- */
+const PUBLIC_ROUTES = [
+  '/api/auth/login',
+  '/api/auth/register',
+  /^\/api\/workspaces\/[^/]+\/invitations\/details$/,
+];
+
+const isPublicRoute = (path) =>
+  PUBLIC_ROUTES.some(route =>
+    typeof route === 'string' ? route === path : route.test(path)
+  );
+
 export const authenticate = asyncHandler(async (req, res, next) => {
+  console.log("AUTH MIDDLEWARE HIT:", req.originalUrl);
+
+  // ✅ Strip query string before matching
+  const pathname = req.path;
+
+  if (isPublicRoute(pathname)) {
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -31,10 +39,10 @@ export const authenticate = asyncHandler(async (req, res, next) => {
   }
 
   const token = authHeader.split(" ")[1];
-
   const decoded = jwt.verify(token, config.JWT_SECRET);
 
-  const user = await UserModel.findById(decoded.userId).select("-password -refreshToken");
+  const user = await UserModel.findById(decoded.userId)
+    .select("-password -refreshToken");
 
   if (!user) {
     throw new AppError(

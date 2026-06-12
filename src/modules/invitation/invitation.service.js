@@ -48,6 +48,8 @@ class InvitationService {
       invitedBy: invitedBy._id,
     });
 
+    console.log(rawToken)                                   // delete it later
+
     const inviteUrl = `${config.CLIENT_URL}/invitations/accept?token=${rawToken}`;
 
     await emailService.sendInvitationEmail({

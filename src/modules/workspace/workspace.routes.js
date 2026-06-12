@@ -5,14 +5,17 @@ import { workspaceController } from "./workspace.controller.js";
 import { authenticate } from "../../shared/middleware/auth.middleware.js";
 import { requireWorkspaceRole } from "../../shared/middleware/authorization.middleware.js";
 import { validate } from "../../shared/validators/validate.js";
+import { optionalAuth } from "../../shared/middleware/optionalAuth.middleware.js";
+import { invitationRouter } from "../invitation/invitation.routes.js";
 import {
   createWorkspaceSchema,
   updateWorkspaceSchema,
   updateMemberRoleSchema,
 } from "./workspace.validator.js";
 
-export const workspaceRouter = Router();
 
+export const workspaceRouter = Router();
+workspaceRouter.use("/:workspaceId/invitations", invitationRouter);
 // All workspace routes require authentication
 workspaceRouter.use(authenticate);
 

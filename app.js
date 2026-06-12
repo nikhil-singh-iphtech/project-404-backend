@@ -16,6 +16,8 @@ import { initializePassport } from "./src/config/passport.config.js";
 import { invitationRouter } from "./src/modules/invitation/invitation.routes.js";
 import { workspaceRouter } from "./src/modules/workspace/workspace.routes.js";
 import { projectRouter } from "./src/modules/project/project.routes.js";
+import { issueRouter } from "./src/modules/issue/index.js";
+
 
 
 // ── Module routes ─────────────────────────────────────────────────────────────
@@ -82,6 +84,11 @@ app.use("/api/workspaces", workspaceRouter);
 
 app.use("/api/workspaces/:workspaceId/projects",    projectRouter);
 app.use("/api/workspaces/:workspaceId/invitations", invitationRouter);
+app.use(
+  "/api/workspaces/:workspaceId/projects/:projectId/issues",
+  issueRouter
+);
+
 
 // ── Error Handling ────────────────────────────────────────────────────────────
 // Order matters: notFound must come before globalErrorHandler

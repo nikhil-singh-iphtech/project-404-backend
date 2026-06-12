@@ -1,4 +1,6 @@
 // src/shared/validators/validate.js
+import { AppError } from "../errors/AppError.js";
+import { ErrorCodes } from "../errors/ErrorCodes.js";
 
 export const validate = (schema, source = "body") => (req, res, next) => {
   const target = source === "query" ? req.query : req.body;
@@ -13,7 +15,7 @@ export const validate = (schema, source = "body") => (req, res, next) => {
     return next(new AppError(message, 400, ErrorCodes.VALIDATION_ERROR));
   }
 
-  if (source === "query") req.query = value;
+  if (source === "query") Object.assign(req.query, value);
   else req.body = value;
 
   next();
