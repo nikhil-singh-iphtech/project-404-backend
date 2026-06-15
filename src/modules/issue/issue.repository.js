@@ -3,7 +3,7 @@
 import { BaseRepository } from "../../shared/repositories/BaseRepository.js";
 import { IssueModel } from "./issue.model.js";
 import { IssueSequenceModel } from "./issueSequence.model.js";
-
+import { ISSUE_STATUSES } from "../../shared/constants/issue.constants.js";
 class IssueRepository extends BaseRepository {
   constructor() {
     super(IssueModel);
