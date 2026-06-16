@@ -1,5 +1,3 @@
-// src/app.js
-
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -17,18 +15,19 @@ import { invitationRouter } from "./src/modules/invitation/invitation.routes.js"
 import { workspaceRouter } from "./src/modules/workspace/workspace.routes.js";
 import { projectRouter } from "./src/modules/project/project.routes.js";
 import { issueRouter } from "./src/modules/issue/index.js";
+import { sprintRouter } from "./src/modules/sprint/index.js";
+import { commentRouter } from "./src/modules/comment/index.js";
 
 
 
-// ── Module routes ─────────────────────────────────────────────────────────────
 import { authRouter } from "./src/modules/auth/index.js";
-// Future: import { workspaceRouter } from "./modules/workspace/index.js";
+
 
 const app = express();
 
-// ── Security Middleware ───────────────────────────────────────────────────────
 
-// Sets security-related HTTP headers (XSS, clickjacking protection, etc.)
+
+
 app.use(helmet());
 
 // Sanitize request data against MongoDB operator injection
@@ -42,7 +41,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
 }));
 
-// ── Rate Limiting ─────────────────────────────────────────────────────────────
+
 
 /**
  * Global rate limiter: 100 requests per 15 minutes per IP.
@@ -61,11 +60,11 @@ const globalLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// ── Body Parsing ──────────────────────────────────────────────────────────────
-app.use(express.json({ limit: "10kb" }));   // Prevent large payload attacks
+
+app.use(express.json({ limit: "10kb" }));   
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// ── Health Check ──────────────────────────────────────────────────────────────
+
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -87,6 +86,14 @@ app.use("/api/workspaces/:workspaceId/invitations", invitationRouter);
 app.use(
   "/api/workspaces/:workspaceId/projects/:projectId/issues",
   issueRouter
+);
+app.use(
+  "/api/workspaces/:workspaceId/projects/:projectId/sprints",
+  sprintRouter
+);
+app.use(
+  "/api/workspaces/:workspaceId/projects/:projectId/issues/:issueId/comments",
+  commentRouter
 );
 
 

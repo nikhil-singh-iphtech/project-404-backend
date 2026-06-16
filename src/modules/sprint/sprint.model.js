@@ -1,5 +1,3 @@
-
-
 import mongoose from "mongoose";
 import { SPRINT_STATUSES } from "../../shared/constants/sprint.constants.js";
 

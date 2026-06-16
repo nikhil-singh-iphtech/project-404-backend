@@ -24,19 +24,20 @@ export class ApiResponse {
    * For paginated list endpoints.
    * Keeps pagination metadata separate from data payload.
    */
-  static paginated(res, message = "Fetched successfully", data = [], pagination = {}) {
-    return res.status(200).json({
-      success: true,
-      message,
-      data,
-      pagination: {
-        page: pagination.page || 1,
-        limit: pagination.limit || 20,
-        total: pagination.total || 0,
-        totalPages: pagination.totalPages || 1,
-        hasNextPage: pagination.page < pagination.totalPages,
-        hasPrevPage: pagination.page > 1,
-      },
-    });
-  }
+ static paginated(res, message = "Fetched successfully", data = [], pagination = {}) {
+  return res.status(200).json({
+    success: true,
+    message,
+    data,
+    pagination: {
+      page:        pagination.page      || 1,
+      limit:       pagination.limit     || 20,
+      total:       pagination.total     || 0,
+      totalPages:  pagination.totalPages || 1,
+      hasNextPage: pagination.page < pagination.totalPages,
+      hasPrevPage: pagination.page > 1,
+    },
+  });
+}
+
 }

@@ -1,5 +1,3 @@
-// src/modules/sprint/sprint.repository.js
-
 import { BaseRepository } from "../../shared/repositories/BaseRepository.js";
 import { SprintModel } from "./sprint.model.js";
 import { SPRINT_STATUSES } from "../../shared/constants/sprint.constants.js";
