@@ -24,7 +24,7 @@ export const config = {
 
   // ─── JWT ───────────────────────────────────────────────────
   JWT_SECRET:              requireEnv("JWT_SECRET"),
-  JWT_EXPIRES_IN:          optionalEnv("JWT_EXPIRES_IN", "15m"),
+  JWT_EXPIRES_IN:          optionalEnv("JWT_EXPIRES_IN", "25m"),
   JWT_REFRESH_SECRET:      requireEnv("JWT_REFRESH_SECRET"),
   JWT_REFRESH_EXPIRES_IN:  optionalEnv("JWT_REFRESH_EXPIRES_IN", "7d"),
 

@@ -5,6 +5,8 @@ import { ErrorCodes } from "../../shared/errors/ErrorCodes.js";
 import { SPRINT_STATUSES } from "../../shared/constants/sprint.constants.js";
 import { ISSUE_STATUSES } from "../../shared/constants/issue.constants.js";
 import { IssueModel } from "../issue/issue.model.js";
+import { activityService } from "../activity/activity.service.js";
+import { ACTIVITY_TYPES } from "../../shared/constants/activity.constants.js";
 
 class SprintService {
   async createSprint(
@@ -25,7 +27,10 @@ class SprintService {
       );
     }
 
-    return sprintRepository.create({
+
+ 
+
+    const sprint= sprintRepository.create({
       name,
       startDate:   startDate || null,
       endDate:     endDate   || null,
@@ -34,6 +39,18 @@ class SprintService {
       workspaceId,
       createdBy:   userId,
     });
+
+       activityService.log({
+  actor:       userId,
+  type:        ACTIVITY_TYPES.SPRINT_CREATED,
+  workspaceId,
+  projectId,
+  metadata: {
+    sprintName: sprint.name,
+  },
+});
+
+return sprint
   }
 
   async getSprints(projectId) {
@@ -117,7 +134,7 @@ class SprintService {
    * 2. No other sprint can be ACTIVE in this project
    * 3. Sets startedAt to now
    */
-  async startSprint(sprintId, projectId) {
+  async startSprint(sprintId, projectId,userId) {
     const sprint = await sprintRepository.findById(sprintId);
 
     if (!sprint) {
@@ -147,6 +164,17 @@ class SprintService {
       );
     }
 
+    activityService.log({
+  actor:       userId,
+  type:        ACTIVITY_TYPES.SPRINT_STARTED,
+  workspaceId: sprint.workspaceId,
+  projectId:   sprint.projectId,
+  metadata: {
+    sprintName: sprint.name,
+    startedAt:  new Date(),
+  },
+});
+
     return sprintRepository.updateById(sprintId, {
       status:    SPRINT_STATUSES.ACTIVE,
       startedAt: new Date(),
@@ -162,7 +190,7 @@ class SprintService {
    * 3. Velocity metrics are recorded
    * 4. Sprint status becomes COMPLETED
    */
-  async completeSprint(sprintId, projectId) {
+  async completeSprint(sprintId, projectId,userId) {
     const sprint = await sprintRepository.findById(sprintId);
 
     if (!sprint) {
@@ -200,6 +228,18 @@ class SprintService {
         },
       }
     );
+
+    activityService.log({
+  actor:       userId,
+  type:        ACTIVITY_TYPES.SPRINT_COMPLETED,
+  workspaceId: sprint.workspaceId,
+  projectId:   sprint.projectId,
+  metadata: {
+    sprintName:       sprint.name,
+    totalIssues,
+    completedIssues,
+  },
+});
 
     return sprintRepository.updateById(sprintId, {
       status:          SPRINT_STATUSES.COMPLETED,

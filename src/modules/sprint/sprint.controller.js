@@ -39,7 +39,8 @@ class SprintController {
   start = asyncHandler(async (req, res) => {
     const sprint = await sprintService.startSprint(
       req.params.sprintId,
-      req.params.projectId
+      req.params.projectId,
+      req.user._id
     );
     ApiResponse.success(res, 200, "Sprint started successfully", { sprint });
   });
@@ -47,7 +48,8 @@ class SprintController {
   complete = asyncHandler(async (req, res) => {
     const sprint = await sprintService.completeSprint(
       req.params.sprintId,
-      req.params.projectId
+      req.params.projectId,
+      req.user._id
     );
     ApiResponse.success(res, 200, "Sprint completed successfully", { sprint });
   });

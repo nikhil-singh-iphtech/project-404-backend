@@ -19,7 +19,7 @@ const isPublicRoute = (path) =>
   );
 
 export const authenticate = asyncHandler(async (req, res, next) => {
-  console.log("AUTH MIDDLEWARE HIT:", req.originalUrl);
+ 
 
   // ✅ Strip query string before matching
   const pathname = req.path;

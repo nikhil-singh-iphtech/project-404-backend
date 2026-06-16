@@ -11,6 +11,8 @@ import {
   VALID_STATUS_TRANSITIONS,
   REQUIRES_PARENT
 } from "../../shared/constants/issue.constants.js";
+import { activityService } from "../activity/activity.service.js";
+import { ACTIVITY_TYPES } from "../../shared/constants/activity.constants.js";
 
 class IssueService {
   /**
@@ -131,6 +133,19 @@ async createIssue(
     order: maxOrder + 1,
   });
 
+  activityService.log({
+  actor:       reporterId,
+  type:        ACTIVITY_TYPES.ISSUE_CREATED,
+  workspaceId,
+  projectId,
+  issueId:     issue._id,
+  metadata: {
+    issueCode: issue.issueCode,
+    title:     issue.title,
+    type:      issue.type,
+  },
+});
+
   return issueRepository.findById(issue._id);
 }
 
@@ -148,7 +163,7 @@ async createIssue(
     return issue;
   }
 
-  async updateIssue(issueId, updates) {
+  async updateIssue(issueId, updates,userId) {
     /**
      * If parentId is being updated, validate the new parent.
      * If type is being updated alongside parentId, validate
@@ -167,12 +182,26 @@ async createIssue(
 
     if (!issue) {
       throw new AppError("Issue not found.", 404, ErrorCodes.ISSUE_NOT_FOUND);
+
+
     }
+
+    activityService.log({
+    actor:       userId,
+    type:        ACTIVITY_TYPES.ISSUE_UPDATED,
+    workspaceId: issue.workspaceId,
+    projectId:   issue.projectId,
+    issueId:     issue._id,
+    metadata: {
+      issueCode: issue.issueCode,
+      fields:    Object.keys(updates),
+    },
+  });
 
     return issueRepository.findById(issueId);
   }
 
-  async updateStatus(issueId, newStatus) {
+  async updateStatus(issueId, newStatus,userId) {
     const issue = await issueRepository.findById(issueId);
 
     if (!issue) {
@@ -203,6 +232,19 @@ async createIssue(
       newStatus
     );
 
+    activityService.log({
+    actor:       userId,
+    type:        ACTIVITY_TYPES.ISSUE_STATUS_CHANGED,
+    workspaceId: issue.workspaceId,
+    projectId:   issue.projectId,
+    issueId:     issue._id,
+    metadata: {
+      issueCode: issue.issueCode,
+      from:      issue.status,
+      to:        newStatus,
+    },
+  });
+
     return issueRepository.updateById(issueId, {
       status: newStatus,
       order:  maxOrder + 1,
@@ -219,12 +261,24 @@ async createIssue(
     return issueRepository.findSubtasks(issueId);
   }
 
-  async deleteIssue(issueId) {
+  async deleteIssue(issueId,userId) {
     const issue = await issueRepository.findById(issueId);
 
     if (!issue) {
       throw new AppError("Issue not found.", 404, ErrorCodes.ISSUE_NOT_FOUND);
     }
+
+       activityService.log({
+    actor:       userId,
+    type:        ACTIVITY_TYPES.ISSUE_DELETED,
+    workspaceId: issue.workspaceId,
+    projectId:   issue.projectId,
+    issueId:     issue._id,
+    metadata: {
+      issueCode: issue.issueCode,
+      title:     issue.title,
+    },
+  });
 
     /**
      * Delete all subtasks when parent is deleted.
@@ -232,6 +286,8 @@ async createIssue(
      */
     await issueRepository.model.deleteMany({ parentId: issueId });
     await issueRepository.deleteById(issueId);
+
+   
 
 
   }

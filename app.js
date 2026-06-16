@@ -17,6 +17,11 @@ import { projectRouter } from "./src/modules/project/project.routes.js";
 import { issueRouter } from "./src/modules/issue/index.js";
 import { sprintRouter } from "./src/modules/sprint/index.js";
 import { commentRouter } from "./src/modules/comment/index.js";
+import {
+  issueActivityRouter,
+  projectActivityRouter,
+  workspaceActivityRouter,
+} from "./src/modules/activity/index.js";
 
 
 
@@ -94,6 +99,20 @@ app.use(
 app.use(
   "/api/workspaces/:workspaceId/projects/:projectId/issues/:issueId/comments",
   commentRouter
+);
+app.use(
+  "/api/workspaces/:workspaceId/projects/:projectId/issues/:issueId/activities",
+  issueActivityRouter
+);
+
+app.use(
+  "/api/workspaces/:workspaceId/projects/:projectId/activities",
+  projectActivityRouter
+);
+
+app.use(
+  "/api/workspaces/:workspaceId/activities",
+  workspaceActivityRouter
 );
 
 

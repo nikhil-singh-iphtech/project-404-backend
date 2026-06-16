@@ -4,6 +4,8 @@ import { commentRepository } from "./comment.repository.js";
 import { issueRepository } from "../issue/issue.repository.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { ErrorCodes } from "../../shared/errors/ErrorCodes.js";
+import { activityService } from "../activity/activity.service.js";
+import { ACTIVITY_TYPES } from "../../shared/constants/activity.constants.js";
 
 class CommentService {
   async createComment(
@@ -31,6 +33,18 @@ class CommentService {
       workspaceId,
       author: authorId,
     });
+
+    activityService.log({
+  actor:       authorId,
+  type:        ACTIVITY_TYPES.COMMENT_ADDED,
+  workspaceId,
+  projectId,
+  issueId,
+  metadata: {
+    commentId: comment._id,
+    preview:   content.substring(0, 100),
+  },
+});
 
     return commentRepository.findByIdWithAuthor(comment._id);
   }
@@ -69,6 +83,17 @@ class CommentService {
       editedAt: new Date(),
     });
 
+    activityService.log({
+  actor:       userId,
+  type:        ACTIVITY_TYPES.COMMENT_UPDATED,
+  workspaceId: comment.workspaceId,
+  projectId:   comment.projectId,
+  issueId:     comment.issueId,
+  metadata: {
+    commentId: commentId,
+  },
+});
+
     return commentRepository.findByIdWithAuthor(updated._id);
   }
 
@@ -102,6 +127,16 @@ class CommentService {
         ErrorCodes.COMMENT_FORBIDDEN
       );
     }
+    activityService.log({
+  actor:       userId,
+  type:        ACTIVITY_TYPES.COMMENT_DELETED,
+  workspaceId: comment.workspaceId,
+  projectId:   comment.projectId,
+  issueId:     comment.issueId,
+  metadata: {
+    commentId: commentId,
+  },
+});
 
     await commentRepository.deleteById(commentId);
   }

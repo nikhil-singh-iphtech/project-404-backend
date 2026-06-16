@@ -43,7 +43,8 @@ class IssueController {
   update = asyncHandler(async (req, res) => {
     const issue = await issueService.updateIssue(
       req.params.issueId,
-      req.body
+      req.body,
+      req.user._id 
     );
     ApiResponse.success(res, 200, "Issue updated successfully", { issue });
   });
@@ -51,7 +52,8 @@ class IssueController {
   updateStatus = asyncHandler(async (req, res) => {
     const issue = await issueService.updateStatus(
       req.params.issueId,
-      req.body.status
+      req.body.status,
+      req.user._id 
     );
     ApiResponse.success(res, 200, "Issue status updated successfully", { issue });
   });
@@ -62,7 +64,7 @@ class IssueController {
   });
 
   delete = asyncHandler(async (req, res) => {
-    await issueService.deleteIssue(req.params.issueId);
+    await issueService.deleteIssue(req.params.issueId,req.user._id );
     ApiResponse.noContent(res);
   });
 
