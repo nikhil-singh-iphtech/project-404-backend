@@ -27,6 +27,8 @@ import {
 
 import { authRouter } from "./src/modules/auth/index.js";
 
+import { notificationRouter } from "./src/modules/notification/index.js";
+
 
 const app = express();
 
@@ -114,6 +116,9 @@ app.use(
   "/api/workspaces/:workspaceId/activities",
   workspaceActivityRouter
 );
+
+app.use("/api/notifications", notificationRouter);
+
 
 
 // ── Error Handling ────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { workspaceRepository } from "../workspace/workspace.repository.js";
 class InvitationController {
   send = asyncHandler(async (req, res) => {
     const workspace = await workspaceRepository.findById(req.params.workspaceId);
+    console.log(workspace)
 
     const result = await invitationService.sendInvitation({
       workspaceId: req.params.workspaceId,

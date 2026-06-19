@@ -7,8 +7,20 @@ import { ISSUE_STATUSES } from "../../shared/constants/issue.constants.js";
 import { IssueModel } from "../issue/issue.model.js";
 import { activityService } from "../activity/activity.service.js";
 import { ACTIVITY_TYPES } from "../../shared/constants/activity.constants.js";
+import { notificationService } from "../notification/notification.service.js";
+import { NOTIFICATION_TYPES } from "../../shared/constants/notification.constants.js";
+import { ProjectMemberModel } from "../project/projectMember.model.js";
+import { getIO } from "../../socket/socket.server.js";
+import { emitToProject } from "../../socket/socket.rooms.js";
+import { SOCKET_EVENTS } from "../../socket/socket.events.js";
 
 class SprintService {
+
+  async #getProjectMemberIds(projectId) {
+    const members = await ProjectMemberModel.find({ projectId }).select("userId");
+    return members.map((m) => m.userId);
+  }
+
   async createSprint(
     { name, startDate, endDate, goal },
     projectId,
@@ -28,29 +40,29 @@ class SprintService {
     }
 
 
- 
 
-    const sprint= sprintRepository.create({
+
+    const sprint = sprintRepository.create({
       name,
-      startDate:   startDate || null,
-      endDate:     endDate   || null,
-      goal:        goal      || null,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      goal: goal || null,
       projectId,
       workspaceId,
-      createdBy:   userId,
+      createdBy: userId,
     });
 
-       activityService.log({
-  actor:       userId,
-  type:        ACTIVITY_TYPES.SPRINT_CREATED,
-  workspaceId,
-  projectId,
-  metadata: {
-    sprintName: sprint.name,
-  },
-});
+    activityService.log({
+      actor: userId,
+      type: ACTIVITY_TYPES.SPRINT_CREATED,
+      workspaceId,
+      projectId,
+      metadata: {
+        sprintName: sprint.name,
+      },
+    });
 
-return sprint
+    return sprint
   }
 
   async getSprints(projectId) {
@@ -134,7 +146,7 @@ return sprint
    * 2. No other sprint can be ACTIVE in this project
    * 3. Sets startedAt to now
    */
-  async startSprint(sprintId, projectId,userId) {
+  async startSprint(sprintId, projectId, userId) {
     const sprint = await sprintRepository.findById(sprintId);
 
     if (!sprint) {
@@ -165,18 +177,41 @@ return sprint
     }
 
     activityService.log({
-  actor:       userId,
-  type:        ACTIVITY_TYPES.SPRINT_STARTED,
-  workspaceId: sprint.workspaceId,
-  projectId:   sprint.projectId,
-  metadata: {
-    sprintName: sprint.name,
-    startedAt:  new Date(),
-  },
-});
+      actor: userId,
+      type: ACTIVITY_TYPES.SPRINT_STARTED,
+      workspaceId: sprint.workspaceId,
+      projectId: sprint.projectId,
+      metadata: {
+        sprintName: sprint.name,
+        startedAt: new Date(),
+      },
+    });
+
+    const memberIds = await this.#getProjectMemberIds(projectId);
+
+    notificationService.notifyMany({
+      recipientIds: memberIds,
+      senderId: userId,
+      type: NOTIFICATION_TYPES.SPRINT_STARTED,
+      message: `Sprint "${sprint.name}" has started`,
+      workspaceId: sprint.workspaceId,
+      projectId,
+      link: `/workspaces/${sprint.workspaceId}/projects/${projectId}`,
+    });
+
+
+    try {
+      emitToProject(getIO(), projectId.toString(), SOCKET_EVENTS.SPRINT_STARTED, {
+        sprint: updated,
+        projectId,
+      });
+    } catch (error) {
+      logger.warn(`Socket emit failed: ${error.message}`);
+    }
+
 
     return sprintRepository.updateById(sprintId, {
-      status:    SPRINT_STATUSES.ACTIVE,
+      status: SPRINT_STATUSES.ACTIVE,
       startedAt: new Date(),
     });
   }
@@ -190,7 +225,7 @@ return sprint
    * 3. Velocity metrics are recorded
    * 4. Sprint status becomes COMPLETED
    */
-  async completeSprint(sprintId, projectId,userId) {
+  async completeSprint(sprintId, projectId, userId) {
     const sprint = await sprintRepository.findById(sprintId);
 
     if (!sprint) {
@@ -224,26 +259,51 @@ return sprint
       {
         $set: {
           sprintId: null,
-          status:   ISSUE_STATUSES.TODO,
+          status: ISSUE_STATUSES.TODO,
         },
       }
     );
 
     activityService.log({
-  actor:       userId,
-  type:        ACTIVITY_TYPES.SPRINT_COMPLETED,
-  workspaceId: sprint.workspaceId,
-  projectId:   sprint.projectId,
-  metadata: {
-    sprintName:       sprint.name,
-    totalIssues,
-    completedIssues,
-  },
-});
+      actor: userId,
+      type: ACTIVITY_TYPES.SPRINT_COMPLETED,
+      workspaceId: sprint.workspaceId,
+      projectId: sprint.projectId,
+      metadata: {
+        sprintName: sprint.name,
+        totalIssues,
+        completedIssues,
+      },
+    });
+
+
+    const memberIds = await this.#getProjectMemberIds(projectId);
+
+    notificationService.notifyMany({
+      recipientIds: memberIds,
+      senderId: userId,
+      type: NOTIFICATION_TYPES.SPRINT_COMPLETED,
+      message: `Sprint "${sprint.name}" completed — ${completedIssues}/${totalIssues} issues done`,
+      workspaceId: sprint.workspaceId,
+      projectId,
+      link: `/workspaces/${sprint.workspaceId}/projects/${projectId}`,
+    });
+
+    try {
+      emitToProject(
+        getIO(),
+        projectId.toString(),
+        SOCKET_EVENTS.SPRINT_COMPLETED,
+        { sprint: completed, projectId }
+      );
+    } catch (error) {
+      logger.warn(`Socket emit failed: ${error.message}`);
+    }
+
 
     return sprintRepository.updateById(sprintId, {
-      status:          SPRINT_STATUSES.COMPLETED,
-      completedAt:     new Date(),
+      status: SPRINT_STATUSES.COMPLETED,
+      completedAt: new Date(),
       totalIssues,
       completedIssues,
     });
@@ -311,7 +371,7 @@ return sprint
 
     return IssueModel.find({ sprintId })
       .populate("assignees", "name email profilePicture")
-      .populate("reporter",  "name email profilePicture")
+      .populate("reporter", "name email profilePicture")
       .sort({ order: 1 });
   }
 }

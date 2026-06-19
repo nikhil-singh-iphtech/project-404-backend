@@ -8,6 +8,10 @@ import { ErrorCodes } from "../../shared/errors/ErrorCodes.js";
 import { INVITATION_STATUSES } from "../../shared/constants/invitation.constant.js";
 import { config } from "../../config/app.config.js";
 
+import { notificationService } from "../notification/notification.service.js";
+import { NOTIFICATION_TYPES }  from "../../shared/constants/notification.constants.js";
+
+
 class InvitationService {
   async sendInvitation({ workspaceId, email, role, invitedBy }) {
     // Block if already a workspace member
@@ -120,6 +124,17 @@ async acceptInvitation(rawToken, userId) {
   await invitationRepository.updateById(invitation._id, {
     status: INVITATION_STATUSES.ACCEPTED,
   });
+
+ 
+notificationService.notify({
+  recipientId: userId,
+  senderId:    null,  // system notification
+  type:        NOTIFICATION_TYPES.WORKSPACE_MEMBER_ADDED,
+  message:     `You have been added to workspace "${workspace.name}"`,
+  workspaceId: invitation.workspaceId,
+  link:        `/workspaces/${invitation.workspaceId}`,
+});
+
 
   return { workspaceId: invitation.workspaceId };
 }

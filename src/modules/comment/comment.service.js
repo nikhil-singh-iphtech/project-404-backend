@@ -2,10 +2,16 @@
 
 import { commentRepository } from "./comment.repository.js";
 import { issueRepository } from "../issue/issue.repository.js";
+import { notificationService } from "../notification/notification.service.js";
+import { activityService } from "../activity/activity.service.js";
+import { getIO } from "../../socket/socket.server.js";
+import { emitToProject } from "../../socket/socket.rooms.js";
+import { SOCKET_EVENTS } from "../../socket/socket.events.js";
+import { NOTIFICATION_TYPES } from "../../shared/constants/notification.constants.js";
+import { ACTIVITY_TYPES } from "../../shared/constants/activity.constants.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { ErrorCodes } from "../../shared/errors/ErrorCodes.js";
-import { activityService } from "../activity/activity.service.js";
-import { ACTIVITY_TYPES } from "../../shared/constants/activity.constants.js";
+import { logger } from "../../shared/utils/logger.js";
 
 class CommentService {
   async createComment(
@@ -15,7 +21,7 @@ class CommentService {
     workspaceId,
     authorId
   ) {
-    // Verify issue exists before adding comment
+    // Verify issue exists before adding comment — reuse this single fetch
     const issue = await issueRepository.findById(issueId);
 
     if (!issue) {
@@ -34,19 +40,62 @@ class CommentService {
       author: authorId,
     });
 
-    activityService.log({
-  actor:       authorId,
-  type:        ACTIVITY_TYPES.COMMENT_ADDED,
-  workspaceId,
-  projectId,
-  issueId,
-  metadata: {
-    commentId: comment._id,
-    preview:   content.substring(0, 100),
-  },
-});
+    const populated = await commentRepository.findByIdWithAuthor(comment._id);
 
-    return commentRepository.findByIdWithAuthor(comment._id);
+    // ─── Activity Log ──────────────────────────────────────────
+    activityService.log({
+      actor: authorId,
+      type: ACTIVITY_TYPES.COMMENT_ADDED,
+      workspaceId,
+      projectId,
+      issueId,
+      metadata: {
+        commentId: comment._id,
+        preview: content.substring(0, 100),
+      },
+    });
+
+    // ─── Notifications ─────────────────────────────────────────
+    /**
+     * Notify all participants:
+     * - The issue reporter
+     * - All assignees
+     * Exclude the comment author — no self-notifications
+     * (notificationService.notifyMany already filters the sender out).
+     */
+    const participants = [
+      issue.reporter,
+      ...issue.assignees,
+    ].filter(Boolean);
+
+    notificationService.notifyMany({
+      recipientIds: participants,
+      senderId: authorId,
+      type: NOTIFICATION_TYPES.ISSUE_COMMENT_ADDED,
+      message: `New comment on ${issue.issueCode}: "${content.substring(0, 60)}${content.length > 60 ? "..." : ""}"`,
+      workspaceId,
+      projectId,
+      issueId,
+      link: `/workspaces/${workspaceId}/projects/${projectId}/issues/${issueId}`,
+    });
+
+    // ─── Real-Time Emit ────────────────────────────────────────
+    try {
+      emitToProject(
+        getIO(),
+        projectId.toString(),
+        SOCKET_EVENTS.COMMENT_ADDED,
+        {
+          comment: populated,
+          issueId,
+          projectId,
+        }
+      );
+    } catch (error) {
+      logger.warn(`Socket emit failed on comment create: ${error.message}`);
+    }
+
+    return populated;
   }
 
   async getComments(issueId, { page, limit }) {
@@ -83,18 +132,37 @@ class CommentService {
       editedAt: new Date(),
     });
 
-    activityService.log({
-  actor:       userId,
-  type:        ACTIVITY_TYPES.COMMENT_UPDATED,
-  workspaceId: comment.workspaceId,
-  projectId:   comment.projectId,
-  issueId:     comment.issueId,
-  metadata: {
-    commentId: commentId,
-  },
-});
+    const populated = await commentRepository.findByIdWithAuthor(updated._id);
 
-    return commentRepository.findByIdWithAuthor(updated._id);
+    // ─── Activity Log ──────────────────────────────────────────
+    activityService.log({
+      actor: userId,
+      type: ACTIVITY_TYPES.COMMENT_UPDATED,
+      workspaceId: comment.workspaceId,
+      projectId: comment.projectId,
+      issueId: comment.issueId,
+      metadata: {
+        commentId,
+      },
+    });
+
+    // ─── Real-Time Emit ────────────────────────────────────────
+    try {
+      emitToProject(
+        getIO(),
+        comment.projectId.toString(),
+        SOCKET_EVENTS.COMMENT_UPDATED,
+        {
+          comment: populated,
+          issueId: comment.issueId,
+          projectId: comment.projectId,
+        }
+      );
+    } catch (error) {
+      logger.warn(`Socket emit failed on comment update: ${error.message}`);
+    }
+
+    return populated;
   }
 
   async deleteComment(commentId, userId, userRole) {
@@ -118,7 +186,7 @@ class CommentService {
      * without being the author.
      */
     const isAuthor = comment.author.toString() === userId.toString();
-    const isAdmin  = userRole === "ADMIN";
+    const isAdmin = userRole === "ADMIN";
 
     if (!isAuthor && !isAdmin) {
       throw new AppError(
@@ -127,16 +195,34 @@ class CommentService {
         ErrorCodes.COMMENT_FORBIDDEN
       );
     }
+
+    // ─── Activity Log ──────────────────────────────────────────
     activityService.log({
-  actor:       userId,
-  type:        ACTIVITY_TYPES.COMMENT_DELETED,
-  workspaceId: comment.workspaceId,
-  projectId:   comment.projectId,
-  issueId:     comment.issueId,
-  metadata: {
-    commentId: commentId,
-  },
-});
+      actor: userId,
+      type: ACTIVITY_TYPES.COMMENT_DELETED,
+      workspaceId: comment.workspaceId,
+      projectId: comment.projectId,
+      issueId: comment.issueId,
+      metadata: {
+        commentId,
+      },
+    });
+
+    // ─── Real-Time Emit ────────────────────────────────────────
+    try {
+      emitToProject(
+        getIO(),
+        comment.projectId.toString(),
+        SOCKET_EVENTS.COMMENT_DELETED,
+        {
+          commentId,
+          issueId: comment.issueId,
+          projectId: comment.projectId,
+        }
+      );
+    } catch (error) {
+      logger.warn(`Socket emit failed on comment delete: ${error.message}`);
+    }
 
     await commentRepository.deleteById(commentId);
   }

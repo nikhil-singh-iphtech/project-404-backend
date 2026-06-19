@@ -5,6 +5,9 @@ import { workspaceRepository } from "./workspace.repository.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { ErrorCodes } from "../../shared/errors/ErrorCodes.js";
 import { WORKSPACE_ROLES } from "../../shared/constants/roles.constants.js";
+import { notificationService } from "../notification/notification.service.js";
+import { NOTIFICATION_TYPES }  from "../../shared/constants/notification.constants.js";
+
 
 class WorkspaceService {
   /**
@@ -191,6 +194,14 @@ class WorkspaceService {
     }
 
     await workspaceRepository.removeMember({ workspaceId, userId: targetUserId });
+
+     notificationService.notify({
+    recipientId: targetUserId,
+    senderId:    requestingMembership.userId,
+    type:        NOTIFICATION_TYPES.WORKSPACE_MEMBER_REMOVED,
+    message:     `You have been removed from the workspace`,
+    workspaceId,
+  });
   }
 
   async leaveWorkspace({ workspaceId, userId }) {

@@ -1,4 +1,4 @@
-// src/shared/errors/ErrorCodes.js — add new codes
+
 
 export const ErrorCodes = {
   // ─── Auth (existing) ───────────────────────────────────────
@@ -55,5 +55,9 @@ SPRINT_DATES_INVALID:      "SPRINT_005",
 
 COMMENT_NOT_FOUND:   "COMMENT_001",
 COMMENT_FORBIDDEN:   "COMMENT_002",
+
+
+NOTIFICATION_NOT_FOUND: "NOTIF_001",
+NOTIFICATION_FORBIDDEN: "NOTIF_002",
 };
 
